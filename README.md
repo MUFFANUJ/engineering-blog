@@ -48,6 +48,7 @@ Each post lives in its own directory under `posts/`, named with a URL-friendly s
    ---
    title: "Your Post Title"
    slug: your-post-slug
+   author: wordpress-username
    categories:
      - Engineering
    tags:
@@ -61,7 +62,9 @@ Each post lives in its own directory under `posts/`, named with a URL-friendly s
    ---
    ```
 
-   **Required fields:** `title`, `slug`, `categories`
+   **Required fields:** `title`, `slug`, `author`, `categories`
+
+   `author` is the WordPress username of the post author. The post will be published under their name. The author must have an account on the OpenTeams WordPress site.
 
    **Optional fields:** `tags`, `meta_description`, `focus_keyword`, `seo_keywords`
 
@@ -97,18 +100,39 @@ Both paths automatically:
 - Set Yoast SEO metadata
 - Update the file's frontmatter with `wordpress_id`, `wordpress_url`, and `last_synced`
 
-### Publishing Workflow
+### Automatic Publishing (CI)
 
+A GitHub Actions workflow automatically publishes articles when changes to `posts/` are pushed to `main`. Contributors do not need WordPress credentials.
+
+**How it works:**
 1. Write your post on a feature branch.
 2. Open a pull request for review.
-3. Once approved and merged to `main`, publish:
-   ```bash
-   uv run scripts/wordpress/publish.py posts/<slug>/index.md
-   ```
+3. Once approved and merged to `main`, the workflow automatically:
+   - Detects which articles were added or modified
+   - Publishes new articles as WordPress drafts (or syncs updates)
+   - Commits updated frontmatter (`wordpress_id`, `wordpress_url`, `last_synced`) back to `main`
+
+### Manual Publishing (Local)
+
+You can also publish locally if you have WordPress credentials in `.env`:
+
+```bash
+uv run scripts/wordpress/publish.py posts/<slug>/index.md
+```
+
+### Repository Secrets
+
+The following secrets must be configured in the GitHub repo settings (`Settings > Secrets and variables > Actions`):
+
+| Secret | Description |
+|--------|-------------|
+| `WP_TOKEN` | WordPress application password |
+| `WP_API_URL` | WordPress REST API URL (e.g., `https://openteams.com/wp-json/wp/v2`) |
+| `WP_USERNAME` | WordPress username |
 
 ## Contributing
 
 1. Create a branch from `main`.
 2. Add your post following the structure above.
 3. Submit a PR with a clear title and summary.
-4. Address review feedback, then merge.
+4. Address review feedback, then merge — publishing happens automatically.

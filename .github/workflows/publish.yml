@@ -1,0 +1,50 @@
+name: Publish to WordPress
+
+on:
+  push:
+    branches: [main]
+    paths: ['posts/**']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to detect changed files
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Detect changed articles
+        id: changed
+        run: |
+          # Find .md and .qmd files in posts/ that were added or modified
+          FILES=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- 'posts/**/*.md' 'posts/**/*.qmd')
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$FILES" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Publish articles
+        if: steps.changed.outputs.files != ''
+        env:
+          WP_TOKEN: ${{ secrets.WP_TOKEN }}
+          WP_API_URL: ${{ secrets.WP_API_URL }}
+          USERNAME: ${{ secrets.WP_USERNAME }}
+        run: |
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "Publishing: $file"
+            uv run scripts/wordpress/publish.py "$file"
+          done <<< "${{ steps.changed.outputs.files }}"
+
+      - name: Commit updated metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add posts/
+          # Only commit if there are changes (publish.py updates frontmatter)
+          git diff --cached --quiet || git commit -m "chore: update WordPress metadata [skip ci]"
+          git push
