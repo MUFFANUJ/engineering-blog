@@ -82,6 +82,119 @@ Each post lives in its own directory under `posts/`, named with a URL-friendly s
 | Markdown | `.md` | Standard prose, code snippets, conceptual articles |
 | Quarto Markdown | `.qmd` | Posts with executable code, data visualizations, or reproducible analysis |
 
+## Markdown Syntax Reference
+
+The publish script converts markdown to HTML with support for Prism.js plugins. Use `#|` directives inside code blocks to control rendering.
+
+### Standard Code Block
+
+````markdown
+```python
+def hello():
+    print("Hello, world!")
+```
+````
+
+### Line Highlighting
+
+Highlight specific lines to draw attention. Uses the [Prism.js Line Highlight](https://prismjs.com/plugins/line-highlight/) plugin.
+
+````markdown
+```python
+#| highlight: 2-3, 5
+import pandas as pd
+
+df = pd.read_csv("data.csv")
+df = df.dropna()
+result = df.groupby("category").sum()
+```
+````
+
+`#| highlight:` accepts single lines (`5`), ranges (`1-3`), and combinations (`1-3, 5, 9-12`).
+
+### Command-Line Prompt
+
+Show terminal prompts with the [Prism.js Command Line](https://prismjs.com/plugins/command-line/) plugin. Lines are rendered with `$` (or `#` for root) prompts.
+
+````markdown
+```bash
+#| command-line
+pip install pandas
+python main.py
+```
+````
+
+Customize the prompt with optional attributes:
+
+````markdown
+```bash
+#| command-line data-user=root data-host=server
+apt-get update
+```
+````
+
+Use a fully custom prompt:
+
+````markdown
+```sql
+#| command-line data-prompt="mysql>"
+SELECT * FROM users;
+```
+````
+
+### Command-Line with Output
+
+Mark lines that are output (no prompt shown) with `data-output`:
+
+````markdown
+```bash
+#| command-line
+#| data-output: 2-4
+ls -la
+total 4
+drwxr-xr-x 2 user user 4096 Jan 1 00:00 .
+-rw-r--r-- 1 user user    0 Jan 1 00:00 file.txt
+```
+````
+
+Or use `data-filter-output` to mark output lines with a prefix (stripped on render):
+
+````markdown
+```bash
+#| command-line
+#| data-filter-output: (out)
+echo "hello"
+(out)hello
+```
+````
+
+### Mermaid Diagrams
+
+Rendered automatically with dark theme:
+
+````markdown
+```mermaid
+graph LR
+    A[Start] --> B[End]
+```
+````
+
+### Other Supported Elements
+
+| Element | Syntax |
+|---------|--------|
+| Bold | `**text**` |
+| Italic | `*text*` |
+| Inline code | `` `code` `` |
+| Link | `[text](url)` |
+| Image | `![alt](images/file.png)` |
+| Blockquote | `> text` |
+| Table | Standard markdown table syntax |
+| Horizontal rule | `---` |
+| Ordered list | `1. item` |
+| Unordered list | `- item` |
+| Nested list | Indent with 2 or 4 spaces |
+
 ## Publishing
 
 A single script handles both creating new posts and syncing updates:
