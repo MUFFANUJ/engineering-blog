@@ -66,6 +66,28 @@ def hello():
 ```
 ````
 
+### Executable Code Block (.qmd only)
+
+In `.qmd` files, use `{python}` to mark executable code blocks. These are converted to standard syntax-highlighted blocks on publish.
+
+````markdown
+```{python}
+import pandas as pd
+
+df = pd.read_csv("data.csv")
+print(df.head())
+```
+````
+
+Use `#| echo: false` to hide a code block from the published output:
+
+````markdown
+```{python}
+#| echo: false
+config = load_config()
+```
+````
+
 ### Line Highlighting
 
 Highlight specific lines to draw attention. Uses the [Prism.js Line Highlight](https://prismjs.com/plugins/line-highlight/) plugin.
