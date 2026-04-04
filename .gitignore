@@ -3,6 +3,5 @@ __pycache__/
 *.pyc
 .DS_Store
 .venv/
-CLAUDE.md
 .claude/
 .playwright-mcp

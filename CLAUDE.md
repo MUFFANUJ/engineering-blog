@@ -1,0 +1,138 @@
+# Writing Guide
+
+Full reference for contributors writing engineering blog posts.
+
+## Creating a Post
+
+1. Create a `.md` or `.qmd` file under `posts/` with a URL-friendly slug (e.g., `posts/building-ml-pipelines.md`).
+2. Add YAML frontmatter at the top of the file.
+3. Write your content in standard markdown.
+
+## Frontmatter
+
+```yaml
+---
+title: "Your Post Title"
+slug: your-post-slug
+author: wordpress-username
+categories:
+  - Engineering
+tags:
+  - python
+  - data-engineering
+meta_description: "A short summary for SEO (150-160 chars)."
+focus_keyword: "main keyword"
+seo_keywords:
+  - "keyword one"
+  - "keyword two"
+---
+```
+
+**Required fields:** `title`, `slug`, `author`, `categories`
+
+`author` is the WordPress username of the post author. The post will be published under their name. The author must have an account on the OpenTeams WordPress site.
+
+**Optional fields:** `tags`, `meta_description`, `focus_keyword`, `seo_keywords`
+
+**Auto-added after publishing:** `wordpress_id`, `wordpress_url`, `last_synced`
+
+## File Formats
+
+| Format | Extension | When to Use |
+|--------|-----------|-------------|
+| Markdown | `.md` | Standard prose, code snippets, conceptual articles |
+| Quarto Markdown | `.qmd` | Posts with executable code, data visualizations, or reproducible analysis |
+
+## Images
+
+Place images in `posts/images/<post-slug>/` and reference them with relative paths:
+
+```markdown
+![diagram](images/building-ml-pipelines/architecture.png)
+```
+
+Images are automatically uploaded to WordPress when the post is published.
+
+## Markdown Syntax Reference
+
+The publish script converts markdown to HTML with support for Prism.js plugins. Use `#|` directives inside code blocks to control rendering.
+
+### Standard Code Block
+
+````markdown
+```python
+def hello():
+    print("Hello, world!")
+```
+````
+
+### Line Highlighting
+
+Highlight specific lines to draw attention. Uses the [Prism.js Line Highlight](https://prismjs.com/plugins/line-highlight/) plugin.
+
+`#| highlight:` accepts single lines (`5`), ranges (`1-3`), and combinations (`1-3, 5, 9-12`).
+
+````markdown
+```python
+#| highlight: 2-3, 5
+import pandas as pd
+
+df = pd.read_csv("data.csv")
+df = df.dropna()
+result = df.groupby("category").sum()
+```
+````
+
+**Output:**
+
+![Line highlighting example](images/line-highlight.png)
+
+### Command-Line Prompt
+
+Show terminal prompts with the [Prism.js Command Line](https://prismjs.com/plugins/command-line/) plugin. Use `data-filter-output` to mark output lines with a prefix (stripped on render).
+
+````markdown
+```bash
+#| command-line
+#| data-filter-output: (out)
+echo "Hello from OpenTeams!"
+(out)Hello from OpenTeams!
+```
+````
+
+**Output:**
+
+![Command-line prompt example](images/command-line-filter.png)
+
+Optional attributes: `data-user`, `data-host`, `data-prompt`, `data-output`.
+
+### Mermaid Diagrams
+
+Rendered automatically:
+
+````markdown
+```mermaid
+graph LR
+    A[Start] --> B[End]
+```
+````
+
+**Output:**
+
+![Mermaid diagram example](images/mermaid-diagram.png)
+
+### Other Supported Elements
+
+| Element | Syntax |
+|---------|--------|
+| Bold | `**text**` |
+| Italic | `*text*` |
+| Inline code | `` `code` `` |
+| Link | `[text](url)` |
+| Image | `![alt](images/file.png)` |
+| Blockquote | `> text` |
+| Table | Standard markdown table syntax |
+| Horizontal rule | `---` |
+| Ordered list | `1. item` |
+| Unordered list | `- item` |
+| Nested list | Indent with 2 or 4 spaces |
