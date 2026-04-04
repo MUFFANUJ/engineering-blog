@@ -129,17 +129,19 @@ def get_auth_headers(username: str, wp_token: str) -> Dict[str, str]:
     }
 
 
+def _matches_author(user: Dict, author_lower: str) -> bool:
+    """Check if a WordPress user matches the given author string."""
+    return (
+        user["slug"] == author_lower
+        or user["name"].lower() == author_lower
+        or user.get("username", "").lower() == author_lower
+    )
+
+
 def get_user_id(
     author: str, wp_token: str, wp_api_url: str, auth_username: str
 ) -> Optional[int]:
-    """Get WordPress user ID by name, slug, or username.
-
-    Args:
-        author: The author to look up (display name, slug, or username)
-        wp_token: WordPress application password
-        wp_api_url: WordPress REST API URL
-        auth_username: Username for API authentication (from .env)
-    """
+    """Look up a WordPress user ID by display name, slug, or username."""
     headers = get_auth_headers(auth_username, wp_token)
     response = requests.get(
         f"{wp_api_url}/users",
@@ -148,20 +150,19 @@ def get_user_id(
         timeout=10,
     )
 
-    if response.status_code == 200:
-        users = response.json()
-        author_lower = author.lower()
-        for user in users:
-            # Match by slug, name, or username (case-insensitive)
-            if (
-                user["slug"] == author_lower
-                or user["name"].lower() == author_lower
-                or user.get("username", "").lower() == author_lower
-            ):
-                return user["id"]
-        # If only one result, use it
-        if len(users) == 1:
-            return users[0]["id"]
+    if response.status_code != 200:
+        print(f"⚠️  Failed to search users: {response.status_code}")
+        return None
+
+    users = response.json()
+    author_lower = author.lower()
+
+    for user in users:
+        if _matches_author(user, author_lower):
+            return user["id"]
+
+    if len(users) == 1:
+        return users[0]["id"]
 
     print(f"⚠️  User '{author}' not found")
 

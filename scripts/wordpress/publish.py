@@ -154,72 +154,85 @@ def sync_post(
     return False
 
 
-def process_file(
+def _validate_and_prepare(
     file_path: str, username: str, wp_token: str, wp_api_url: str
-) -> bool:
-    """Process a file: create new post or sync existing one."""
+) -> Optional[Dict]:
+    """Extract post data, validate required fields, and upload images."""
     post_data = extract_post_data(file_path)
     if not post_data:
         print("  ❌ Could not extract data from file")
-        return False
+        return None
 
     if not (post_data.get("title") or "").strip():
         print("❌ Missing title")
-        return False
+        return None
 
-    # Upload local images to WordPress and replace paths
     post_data["content"] = upload_and_replace_article_images(
         post_data["content"], file_path, wp_token, wp_api_url, username
     )
-
-    # Resolve author: use frontmatter 'author' field if set, otherwise fall back to env USERNAME
-    author_username = post_data.get("author") or username
+    post_data["_author_username"] = post_data.get("author") or username
 
     print(f"Title: {post_data['title']}")
     print(f"Slug: {post_data['slug']}")
-    print(f"Author: {author_username}")
+    print(f"Author: {post_data['_author_username']}")
+
+    return post_data
+
+
+def _sync_existing_post(
+    post_data: Dict, file_path: str, wp_token: str, wp_api_url: str, username: str
+) -> bool:
+    """Sync updates to an existing WordPress post."""
+    print(f"Mode: sync (wordpress_id: {post_data['wordpress_id']})")
+    if not sync_post(post_data, wp_token, wp_api_url, username):
+        return False
+    metadata_updates = {"last_synced": time.strftime("%Y-%m-%dT%H:%M:%SZ")}
+    update_qmd_metadata(file_path, metadata_updates, mode="update")
+    return True
+
+
+def _create_new_post(
+    post_data: Dict, file_path: str, wp_token: str, wp_api_url: str, username: str
+) -> bool:
+    """Create a new WordPress draft post."""
+    print("Mode: create (new draft)")
+    author_username = post_data["_author_username"]
+    author_id = get_user_id(author_username, wp_token, wp_api_url, username)
+    if not author_id:
+        print(f"  ❌ Could not find WordPress user '{author_username}'")
+        return False
+
+    wp_post = create_post(post_data, author_id, wp_token, wp_api_url, username)
+    if not wp_post:
+        print("  ❌ Failed to create WordPress post")
+        return False
+
+    final_url = _build_published_url(wp_api_url, wp_post, post_data)
+    print(f"Draft URL: {wp_post['link']}")
+    print(f"Published URL: {final_url}")
+
+    metadata_updates = {
+        "wordpress_url": final_url,
+        "wordpress_id": wp_post["id"],
+        "last_synced": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    if not update_qmd_metadata(file_path, metadata_updates, mode="create"):
+        print(f"  ❌ Failed to update {file_path}")
+        return False
+    return True
+
+
+def process_file(
+    file_path: str, username: str, wp_token: str, wp_api_url: str
+) -> bool:
+    """Publish or sync a markdown file to WordPress."""
+    post_data = _validate_and_prepare(file_path, username, wp_token, wp_api_url)
+    if not post_data:
+        return False
 
     if has_wordpress_id(file_path):
-        # Sync existing post
-        print(f"Mode: sync (wordpress_id: {post_data['wordpress_id']})")
-        if sync_post(post_data, wp_token, wp_api_url, username):
-            metadata_updates = {"last_synced": time.strftime("%Y-%m-%dT%H:%M:%SZ")}
-            update_qmd_metadata(file_path, metadata_updates, mode="update")
-            return True
-        return False
-    else:
-        # Create new post
-        print("Mode: create (new draft)")
-        author_id = get_user_id(author_username, wp_token, wp_api_url, username)
-        if not author_id:
-            print(f"  ❌ Could not find WordPress user '{author_username}'")
-            print(f"     Ensure this user exists on WordPress")
-            return False
-
-        wp_post = create_post(
-            post_data, author_id, wp_token, wp_api_url, username
-        )
-        if not wp_post:
-            print("  ❌ Failed to create WordPress post")
-            return False
-
-        post_id = wp_post["id"]
-        final_url = _build_published_url(wp_api_url, wp_post, post_data)
-
-        print(f"Draft URL: {wp_post['link']}")
-        print(f"Published URL: {final_url}")
-
-        metadata_updates = {
-            "wordpress_url": final_url,
-            "wordpress_id": post_id,
-            "last_synced": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
-
-        if update_qmd_metadata(file_path, metadata_updates, mode="create"):
-            return True
-        else:
-            print(f"  ❌ Failed to update {file_path}")
-            return False
+        return _sync_existing_post(post_data, file_path, wp_token, wp_api_url, username)
+    return _create_new_post(post_data, file_path, wp_token, wp_api_url, username)
 
 
 def main():
