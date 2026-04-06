@@ -4,10 +4,10 @@ Full reference for contributors writing engineering blog posts.
 
 ## Creating a Post
 
-1. Create a `.md` or `.qmd` file under `posts/` with a URL-friendly slug (e.g., `posts/building-ml-pipelines.md`).
-2. Add YAML frontmatter at the top of the file.
-3. Write your content in standard markdown.
-4. Run `/seo-meta-description posts/your-article.md` to optimize SEO before publishing. This generates tags, focus keyword, and meta description interactively, then audits against SmartCrawl's checklist.
+1. Create a `.md` or `.qmd` file under `posts/` (e.g., `posts/building-ml-pipelines.md`).
+2. Write your content in standard markdown.
+3. Add YAML frontmatter at the top of the file (see [Frontmatter](#frontmatter) below).
+4. *Optional:* If you use Claude Code, run `/seo-meta-description posts/your-article.md` to auto-generate title, slug, focus keyword, and meta description.
 
 ## Frontmatter
 
