@@ -6,15 +6,15 @@ categories:
   - Engineering
 ---
 
-In my [previous post](from-skill-to-agent), I described building an AI agent for Harvest time tracking using Pydantic AI — driven partly by security concerns with the skill-based approach. The agent worked perfectly with Claude. Then I tried running it locally.
+In my [previous post](from-skill-to-agent), I described building an AI agent for Harvest time tracking using Pydantic AI — driven partly by security concerns with the skill-based approach. The agent worked perfectly with Claude. Then I tried running it locally, and this partticular local model struggled with things the cloud model handled effortlessly.
 
-It added a time entry on Tuesday instead of Monday. When I asked it to fix that, it added the Monday entry but forgot to delete the Tuesday one. This wasn't a damning verdict on local models — but it was a useful lesson about where to invest your time when building agents.
+It miscalculated a date and added a time entry on Tuesday instead of Monday. When I asked it to fix that, it added the Monday entry but forgot to delete the Tuesday one. This wasn't a damning verdict on local models — but it was a useful lesson about where to invest your time when building agents.
 
 ## Going Local
 
-Why run locally? Partly practical — no API costs, no data leaving my machine. But honestly, partly just for fun. The dream of doing everything locally without worrying about privacy or third-party dependencies is appealing, even if it's not strictly necessary for a time-tracking tool.
+Why run locally? Partly practical — no API costs, no data leaving my machine. But it's also about ownership. When you depend on a hosted model, you're trusting that the provider's incentives stay aligned with yours. The announcement of [ads coming to ChatGPT](https://www.wsj.com/tech/ai/openai-to-begin-testing-ads-in-chatgpt-in-push-for-fresh-revenue-a5e0e993) suggests a future that looks a lot like other ad-supported platforms — and that's a future where your tools might not be working entirely for you. Running locally means you own your infrastructure, your data, and your model. Nobody's optimizing your experience for engagement or ad revenue.
 
-I'd already been experimenting with running models locally for coding tasks, which I [wrote about previously](https://adam-d-lewis.github.io/blog/running-a-local-coding-agent-with-qwen3-coder-next/). Since then, llama.cpp has added built-in [router mode](https://github.com/ggml-org/llama.cpp/pull/17859) — you run a single server process that auto-loads and unloads models on demand based on the `model` field in your API request. With `--models-max 1` it evicts the current model when you request a different one, which works well for my setup with an RTX 3060 12GB where only one large model fits in VRAM at a time.
+I'd already been experimenting with running models locally for coding tasks, which I [wrote about previously on my own blog](https://adam-d-lewis.github.io/blog/running-a-local-coding-agent-with-qwen3-coder-next/). Since then, llama.cpp has added built-in [router mode](https://github.com/ggml-org/llama.cpp/pull/17859) — you run a single server process that auto-loads and unloads models on demand based on the `model` field in your API request. With `--models-max 1` it evicts the current model when you request a different one, which works well for my local setup with an RTX 3060 12GB where only one large model fits in VRAM at a time.
 
 My first test model was Qwen3-Coder-Next — 80B total parameters but only [3B active](https://huggingface.co/Qwen/Qwen3-Coder-Next) per token (it's a Mixture-of-Experts model with 512 experts, 10 selected per token). I was using the Q4_K_M quantization, about 46GB on disk. It's built for coding tasks, not calendar math and time-tracking. So it wasn't exactly a fair fight from the start, and the quantization may have further degraded its reasoning on this kind of task.
 
@@ -24,29 +24,29 @@ I want to be careful here — this isn't a story about local models being bad. L
 
 This was more of an exercise in seeing if I could make the agent robust to a poorly-performing model. The agent worked fine with Claude Sonnet 4.6 — I wanted to see what would break when I threw a much weaker model at it. Here's what I ran into:
 
-**Date math:** I asked it to log time for "next Monday." It picked Tuesday. When dates crossed month boundaries, it got worse.
+**Date math:** I asked it to log time for "next Monday." It miscalculated Monday's date and added the entry to Tuesday instead. When dates crossed month boundaries, it got worse.
 
-**Day-of-week hallucination:** Given the ISO date "2026-04-07," the model confidently identified it as Monday. It's Tuesday.
+**Day-of-week hallucination:** Given the ISO date "2026-04-07," the model confidently identified it as Monday, instead of Tuesday.
 
-**Silent substitution:** I typed a project name with a slight typo. Instead of asking for clarification, the model quietly logged my time to a completely different real project.
+**Silent substitution:** I typed a project name with a slight typo. Instead of asking for clarification, the over-eager model quietly logged my time to a completely different real project instead of notifying me the project didn't exist.
 
 These aren't exotic edge cases — dates and project names are the entire job of a time-tracking agent. Could it have been the model, the quantization, something in llama.cpp, or just that 3B active parameters isn't enough for this? Hard to say. Probably some combination.
 
 ## Pushing Logic Out of the LLM
 
-Rather than guessing at fixes, I started by building evals — 22 test cases covering tool selection, date parsing, shortcut resolution, hallucination detection, and project validation. Evals are valuable regardless of model quality. Model life cycles are short; you're going to be swapping models regularly, and evals let you validate each swap quickly and catch regressions.
+Rather than guessing at fixes, I started by building evals using [pydantic_evals](https://ai.pydantic.dev/evals/) — every time the model got something wrong, I'd have Claude Code add a test case for it. LLM evals aren't new. OpenAI published an [evals framework](https://github.com/openai/evals) early on, and even a simple, hand-built suite goes a long way. I ended up with 28 cases covering tool selection, date parsing, shortcut resolution, hallucination detection, and project validation. Evals are valuable regardless of model quality. Model life cycles are short; you're going to be swapping models regularly, and evals let you validate each swap quickly and catch regressions.
 
 With the evals showing me exactly where the model was failing, I systematically moved deterministic work out of the LLM and into Python:
 
-**Date parsing:** Instead of asking the model to calculate "next Friday," the tool code parses relative dates in Python. The system prompt includes a three-week calendar table — last week through next week — so the model just reads dates off the table instead of doing arithmetic.
+**Date parsing:** The model picked Tuesday when I said "next Monday." Instead of hoping it would get date math right, the tool code now parses relative dates in Python. The system prompt also includes a three-week calendar table — last week through next week — so the model just reads dates off the table instead of doing arithmetic.
 
-**Project validation:** At startup, the agent builds an index of real Harvest projects. Every tool call validates the project name against this index before hitting the API. Typos get fuzzy-matched with suggestions ("did you mean Deep Learning?"). The model is explicitly told: never substitute a project the user didn't ask for.
+**Project validation:** The model silently logged time to the wrong project when I had a typo. Now the agent builds an index of real Harvest projects at startup. Every tool call validates the project name against this index before hitting the API. Typos get fuzzy-matched with suggestions ("did you mean Deep Learning?"). The model is also explicitly told: never substitute a project the user didn't ask for.
 
 **Shortcut resolution and hour rounding:** Lookup tables and rounding logic in Python, not left to the model.
 
 The pattern behind all of these: **the LLM handles intent — understanding what the user wants. Code handles precision — getting the details exactly right.** Anything deterministic belongs in code, not in the prompt.
 
-After these changes, Qwen3-Coder-Next passed 100% of my eval cases. But in real-world usage, it still had rough edges not covered by my (admittedly quick) test suite. A 100% pass rate means your test suite isn't comprehensive enough yet — not that you're production-ready.
+After these changes, Qwen3-Coder-Next passed 100% of my eval cases, showing real improvement. But in real-world usage, it still had rough edges not covered by my (admittedly quick) test suite. In this case, a 100% pass rate meant the test suite wasn't comprehensive enough yet — not that it's production-ready.
 
 ## A Better Model Changes Everything
 
