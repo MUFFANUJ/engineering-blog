@@ -1,0 +1,28 @@
+name: Blog post idea
+description: Propose a new blog post for the engineering blog
+title: "Blog post: <title>"
+labels: ["blog post"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences describing what this post is about and why it's worth writing.
+      placeholder: A short post showing how to use X to do Y, based on lessons from project Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Optional. Link to related posts, PRs, issues, tools, or external resources.
+      placeholder: |
+        - Follow-up to #3
+        - Related tool: https://github.com/openai/evals
+
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      description: Optional. Who is planning to write this?
