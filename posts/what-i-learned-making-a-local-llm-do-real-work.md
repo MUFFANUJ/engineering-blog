@@ -28,7 +28,7 @@ This was more of an exercise in seeing if I could make the agent robust to a poo
 
 **Day-of-week hallucination:** Given the ISO date "2026-04-07," the model confidently identified it as Monday, instead of Tuesday.
 
-**Silent substitution:** I typed a project name with a slight typo. Instead of asking for clarification, the over-eager model quietly logged my time to a completely different real project instead of notifying me the project didn't exist.
+**Silent substitution:** I asked it to log time to a project that didn't exist. Instead of telling me, the over-eager model quietly logged my time to a completely different, but real project.
 
 These aren't exotic edge cases — dates and project names are the entire job of a time-tracking agent. Could it have been the model, the quantization, something in llama.cpp, or just that 3B active parameters isn't enough for this? Hard to say. Probably some combination.
 
@@ -40,7 +40,7 @@ With the evals showing me exactly where the model was failing, I systematically 
 
 **Date parsing:** The model picked Tuesday when I said "next Monday." Instead of hoping it would get date math right, the tool code now parses relative dates in Python. The system prompt also includes a three-week calendar table — last week through next week — so the model just reads dates off the table instead of doing arithmetic.
 
-**Project validation:** The model silently logged time to the wrong project when I had a typo. Now the agent builds an index of real Harvest projects at startup. Every tool call validates the project name against this index before hitting the API. Typos get fuzzy-matched with suggestions ("did you mean Deep Learning?"). The model is also explicitly told: never substitute a project the user didn't ask for.
+**Project validation:** The model silently substituted a real project when I asked for one that didn't exist. Now the agent builds an index of real Harvest projects at startup. Every tool call validates the project name against this index before hitting the API. Close matches get fuzzy-matched with suggestions ("did you mean Deep Learning?"). The model is also explicitly told: never substitute a project the user didn't ask for.
 
 **Shortcut resolution and hour rounding:** Lookup tables and rounding logic in Python, not left to the model.
 
