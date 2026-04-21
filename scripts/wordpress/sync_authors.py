@@ -11,6 +11,8 @@ Usage:
 """
 
 import os
+import secrets
+import string
 import sys
 import yaml
 import requests
@@ -21,6 +23,25 @@ from wordpress_utils import get_auth_headers, DEFAULT_TIMEOUT
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 AUTHORS_FILE = PROJECT_ROOT / "authors.yml"
+
+
+def _generate_strong_password(length: int = 32) -> str:
+    """Build a random password that satisfies common WP strength rules.
+
+    Contains at least one uppercase, lowercase, digit, and symbol. Needed
+    because some WP installs reject weak passwords (e.g. hex-only strings).
+    """
+    symbols = "!@#$%^&*"
+    alphabet = string.ascii_letters + string.digits + symbols
+    required = [
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.digits),
+        secrets.choice(symbols),
+    ]
+    chars = required + [secrets.choice(alphabet) for _ in range(length - len(required))]
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
 
 
 def load_authors() -> List[Dict]:
@@ -68,8 +89,8 @@ def create_user(
         "email": author["email"],
         "description": author.get("bio", ""),
         "roles": ["contributor"],
-        # Random password — contributors can't log in meaningfully
-        "password": os.urandom(32).hex(),
+        # Random password. Contributors are not expected to log in.
+        "password": _generate_strong_password(),
     }
 
     if dry_run:
