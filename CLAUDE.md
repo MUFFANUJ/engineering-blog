@@ -9,6 +9,18 @@ Full reference for contributors writing engineering blog posts.
 3. Add YAML frontmatter at the top of the file (see [Frontmatter](#frontmatter) below).
 4. *Optional:* If you use Claude Code, run `/seo-meta-description posts/your-article.md` to auto-generate title, slug, focus keyword, and meta description.
 
+## Preview
+
+Render a post locally before pushing to see how code blocks, Mermaid diagrams, tables, and the Quarto/Prism directives will look. No WordPress credentials are required.
+
+```bash
+uv run scripts/wordpress/preview.py posts/your-article.md
+```
+
+The rendered HTML is written to `.preview/<slug>.html` (gitignored) and opened in your default browser. Pass `--no-open` to write the file and print its path without opening a browser.
+
+The preview uses the same markdown pipeline as publishing, so what you see is faithful to the WordPress content area. It does not reproduce the OpenTeams theme chrome (author box, navigation, featured-image hero layout, brand fonts).
+
 ## Frontmatter
 
 ```yaml
