@@ -6,7 +6,7 @@ categories:
   - Engineering
 ---
 
-In my [previous post](from-skill-to-agent), I described building an AI agent for Harvest time tracking using Pydantic AI — driven partly by security concerns with the skill-based approach. The agent worked perfectly with Claude. Then I tried running it locally, and this partticular local model struggled with things the cloud model handled effortlessly.
+In my [previous post](from-skill-to-agent), I described building an AI agent for Harvest time tracking using Pydantic AI — driven partly by security concerns with the skill-based approach. The agent worked perfectly with Claude. Then I tried running it locally, and this particular local model struggled with things the cloud model handled effortlessly.
 
 It miscalculated a date and added a time entry on Tuesday instead of Monday. When I asked it to fix that, it added the Monday entry but forgot to delete the Tuesday one. This wasn't a damning verdict on local models — but it was a useful lesson about where to invest your time when building agents.
 
