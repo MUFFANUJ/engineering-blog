@@ -16,3 +16,9 @@ authors:
     bio: >-
       Senior DevRel at OpenTeams. Writes about data science,
       MLOps, and open-source tooling.
+
+  - name: Adam Lewis
+    slug: adam-lewis
+    email: alewis@openteams.com
+    bio: Senior Software Engineer
+    avatar_url: https://openteams.com/wp-content/uploads/2026/04/Adam-Lewis.jpg
