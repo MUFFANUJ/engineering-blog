@@ -1,9 +1,12 @@
 ---
-title: "What I Learned Making a Local LLM Do Real Work"
+title: What I Learned Making a Local LLM Do Real Work
 slug: what-i-learned-making-a-local-llm-do-real-work
 author: adam-lewis
 categories:
-  - Engineering
+- Engineering
+wordpress_url: https://openteams.com/what-i-learned-making-a-local-llm-do-real-work/
+wordpress_id: 22324
+last_synced: '2026-04-21T21:06:40Z'
 ---
 
 In my [previous post](from-skill-to-agent), I described building an AI agent for Harvest time tracking using Pydantic AI — driven partly by security concerns with the skill-based approach. The agent worked perfectly with Claude. Then I tried running it locally, and this particular local model struggled with things the cloud model handled effortlessly.

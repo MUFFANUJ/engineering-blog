@@ -1,9 +1,12 @@
 ---
-title: "From Skill to Agent: When a Text File Isn't Enough"
+title: 'From Skill to Agent: When a Text File Isn''t Enough'
 slug: from-skill-to-agent
 author: adam-lewis
 categories:
-  - Engineering
+- Engineering
+wordpress_url: https://openteams.com/from-skill-to-agent/
+wordpress_id: 22323
+last_synced: '2026-04-21T21:06:40Z'
 ---
 
 A coworker of mine built a [Go CLI for the Harvest time-tracking API](https://github.com/aktech/harvest-go-cli). It's a solid tool, but every time I wanted to use it through [Claude Code](https://www.anthropic.com/claude-code), I'd have to re-explain the CLI's interface, which projects I'm billing to, and how I like my time entries structured. I wanted something I could use as fast as possible without spending time re-describing my setup. So I wrote a skill — essentially a markdown file with instructions, examples, and patterns — and in about an hour I had a working integration. Claude could log time, view entries, edit hours, and delete entries. It just worked.
