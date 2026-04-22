@@ -169,7 +169,7 @@ def _build_wp_payload(post_data: Dict, context: Dict, *, include_create_fields: 
     if include_create_fields:
         payload["slug"] = post_data["slug"]
         payload["format"] = "standard"
-        payload["status"] = post_data.get("status", "draft")
+        payload["status"] = post_data.get("status") or post_data.get("_default_status", "draft")
     elif post_data.get("status"):
         payload["status"] = post_data["status"]
 
@@ -302,12 +302,22 @@ def _create_new_post(
 
 
 def process_file(
-    file_path: str, username: str, wp_token: str, wp_api_url: str
+    file_path: str,
+    username: str,
+    wp_token: str,
+    wp_api_url: str,
+    default_status: str = "draft",
 ) -> bool:
-    """Publish or sync a markdown file to WordPress."""
+    """Publish or sync a markdown file to WordPress.
+
+    default_status is used for NEW posts only and only when frontmatter
+    does not specify `status`. Sync mode preserves whatever status the
+    post already has in WordPress.
+    """
     post_data = _validate_and_prepare(file_path, username, wp_token, wp_api_url)
     if not post_data:
         return False
+    post_data["_default_status"] = default_status
 
     existing_id = lookup_post_id_by_slug(
         post_data["slug"], wp_token, wp_api_url, username
@@ -325,6 +335,14 @@ def main():
         "Creates a new draft if no post with the same slug exists, "
         "or syncs updates to the existing post."
     )
+    parser.add_argument(
+        "--status",
+        choices=("draft", "publish"),
+        default="draft",
+        help="Status to use for NEW posts when frontmatter doesn't specify one. "
+        "Default: draft (safe for local testing). Use 'publish' in CI to make "
+        "merged posts live.",
+    )
     args = parser.parse_args()
 
     username = os.environ.get("WP_USERNAME")
@@ -336,7 +354,9 @@ def main():
         print("   WP_TOKEN, WP_API_URL, WP_USERNAME")
         sys.exit(1)
 
-    success = process_file(args.file, username, wp_token, wp_api_url)
+    success = process_file(
+        args.file, username, wp_token, wp_api_url, default_status=args.status
+    )
     sys.exit(0 if success else 1)
 
 
