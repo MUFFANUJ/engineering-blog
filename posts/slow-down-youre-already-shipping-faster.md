@@ -1,28 +1,36 @@
 ---
-title: "Slow Down — You're Already Shipping Faster: Simple Lessons from the AI Coding Trenches"
-slug: slow-down-youre-already-shipping-faster
+title: "Slow Down — Simple Lessons for Guiding AI and Shipping Better Code"
+slug: slow-down-ship-better-code
 author: jbouder
 categories:
   - Engineering
-meta_description: "Practical lessons for staying in control, keeping your skills sharp, and getting real value from AI coding tools without losing yourself in the hype."
+meta_description: "Practical lessons for shipping better code, staying in control, keeping your skills sharp, and getting real value from AI coding tools without losing yourself in the hype."
 focus_keyword: "AI coding lessons"
 ---
 
-# Slow Down — You're Already Shipping Faster: Simple Lessons from the AI Coding Trenches
+# Slow Down — Simple Lessons for Guiding AI and Shipping Better Code
 
 *How to stay in control, stay sharp, and actually benefit from the tools everyone's rushing to use.*
 
 ---
 
+AI coding tools can dramatically accelerate your output — but raw speed without guidance creates new risks. The developers getting the most out of these tools aren't the ones moving fastest; they're the ones who've learned to steer effectively. A few deliberate habits can mean the difference between shipping quality code sooner and inheriting a subtle mess that takes days to untangle.
+
+---
+
 ## AI is going to accelerate your throughput — so slow down a bit
 
-You're already saving a week of work — take a day to make sure the AI did a good job. Use some of the time saved to thoroughly review proposed plans and code suggestions before accepting them. Speed is a gift; spending some of it on quality is how you stay in control.
+AI makes mistakes. A plausible-looking suggestion that introduces a bug, a security gap, or a subtle logic error can sail through unnoticed if you're moving too quickly to review. Catching those issues before they hit production is far cheaper than debugging them after the fact.
+
+That's why the time savings matter — but so does how you spend them. You're already saving a week of work; take a day to make sure the AI did a good job. Thoroughly review proposed plans and code suggestions before accepting them. Speed is a gift; spending some of it on quality is how you stay in control.
 
 ---
 
 ## Always start with a plan
 
 No need to write one yourself — ask the AI to draft it. Then take the time to actually read it, iterate on it, and push back where it doesn't match your intent. Ask the agent to capture the plan and todos in a markdown file so it can track progress as it goes. This also makes it much easier to pick up where you left off later.
+
+If the change is large, break the plan into multiple phases and tackle them as separate PRs. Large PRs are hard to review thoroughly — by humans or AI — and they're harder to roll back when something goes wrong. Keeping each PR focused makes the work easier to reason about at every stage.
 
 ---
 
@@ -52,4 +60,4 @@ Stay in the loop on what your AI is actually writing — review it and understan
 
 ## Ask AI to review your PRs
 
-Ideally, have a *different* coding agent review the PR than the one that wrote it. A fresh agent brings no attachment to the implementation decisions and will surface issues the original agent rationalized away. You might be surprised what it finds even on code it helped produce — but a second agent with no prior context is the real stress test. Still get a human review when you can; that bar doesn't lower just because AI is involved. And use AI to augment your own process when reviewing others' code too. More eyes, even artificial ones, means fewer things slipping through.
+The ideal setup is having a *different* agent review the PR than the one that wrote it — a fresh agent has no attachment to the original implementation decisions and no history of rationalizing them, which makes it a genuine stress test. If that's not practical, even asking the same agent to review its own work with fresh context (no memory of the prior session) is worthwhile; it will still catch things it missed the first time. Either way, don't lower the bar on human review just because AI is involved. And use AI to augment your own process when reviewing others' code too. More eyes, even artificial ones, means fewer things slipping through.
