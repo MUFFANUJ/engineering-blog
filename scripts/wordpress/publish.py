@@ -129,6 +129,14 @@ def _prepare_wp_context(post_data: Dict, wp_token: str, wp_api_url: str, usernam
     headers = get_auth_headers(username, wp_token)
     headers["Content-Type"] = "application/json"
 
+    # The post appears under the frontmatter `author`, not the authenticated
+    # user. Fall back to the authenticated user if no author is specified.
+    target_author = post_data.get("_author_username") or username
+    author_id = get_user_id(target_author, wp_token, wp_api_url, username)
+    if not author_id:
+        print(f"  ❌ Could not find WordPress user '{target_author}'")
+        return None
+
     html_content = convert_markdown_to_html(post_data.get("content", ""), post_data)
     taxonomy_ids = resolve_categories_and_tags(
         post_data, wp_token, wp_api_url, username
@@ -137,7 +145,7 @@ def _prepare_wp_context(post_data: Dict, wp_token: str, wp_api_url: str, usernam
 
     return {
         "headers": headers,
-        "author_id": current_user["id"],
+        "author_id": author_id,
         "html_content": html_content,
         "taxonomy_ids": taxonomy_ids,
         "seo_meta": seo_meta,
@@ -155,11 +163,11 @@ def _build_wp_payload(post_data: Dict, context: Dict, *, include_create_fields: 
     payload = {
         "title": post_data["title"],
         "content": context["html_content"],
+        "author": context["author_id"],
     }
 
     if include_create_fields:
         payload["slug"] = post_data["slug"]
-        payload["author"] = context["author_id"]
         payload["format"] = "standard"
         payload["status"] = post_data.get("status", "draft")
     elif post_data.get("status"):
@@ -203,7 +211,6 @@ def _send_wp_request(method: str, url: str, headers: Dict, payload: Dict) -> Opt
 
 def create_post(
     post_data: Dict,
-    author_id: int,
     wp_token: str,
     wp_api_url: str,
     username: str,
@@ -283,13 +290,7 @@ def _create_new_post(
 ) -> bool:
     """Create a new WordPress draft post."""
     print("Mode: create (new draft)")
-    author_username = post_data["_author_username"]
-    author_id = get_user_id(author_username, wp_token, wp_api_url, username)
-    if not author_id:
-        print(f"  ❌ Could not find WordPress user '{author_username}'")
-        return False
-
-    wp_post = create_post(post_data, author_id, wp_token, wp_api_url, username)
+    wp_post = create_post(post_data, wp_token, wp_api_url, username)
     if not wp_post:
         print("  ❌ Failed to create WordPress post")
         return False
