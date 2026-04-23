@@ -48,6 +48,31 @@ def _ensure_required_categories(categories):
     return merged
 
 
+def _notify_slack_new_post(post_data: Dict, final_url: str) -> None:
+    """Fire the design-team Slack workflow when a NEW post is created.
+
+    Sync updates are intentionally excluded so post edits don't re-notify.
+    No-op when SLACK_PUBLISH_WEBHOOK is unset (local runs).
+    """
+    webhook = os.environ.get("SLACK_PUBLISH_WEBHOOK")
+    if not webhook:
+        return
+    try:
+        resp = requests.post(
+            webhook,
+            json={
+                "post_title": post_data.get("title") or "",
+                "post_url": final_url,
+                "author": post_data.get("_author_username") or "",
+            },
+            timeout=REQUEST_TIMEOUT,
+        )
+        if resp.status_code != 200:
+            print(f"  ⚠️  Slack notify failed: {resp.status_code}")
+    except requests.exceptions.RequestException as exc:
+        print(f"  ⚠️  Slack notify error: {exc}")
+
+
 def _prepare_wp_context(post_data: Dict, wp_token: str, wp_api_url: str, username: str):
     """Authenticate and resolve all WordPress resources needed for a post."""
     current_user = verify_authentication(wp_token, wp_api_url, username)
@@ -224,6 +249,7 @@ def _create_new_post(
     final_url = _build_published_url(wp_api_url, wp_post, post_data)
     print(f"Draft URL: {wp_post['link']}")
     print(f"Published URL: {final_url}")
+    _notify_slack_new_post(post_data, final_url)
     return True
 
 

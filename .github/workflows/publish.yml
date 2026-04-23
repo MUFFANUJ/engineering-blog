@@ -55,6 +55,7 @@ jobs:
           WP_TOKEN: ${{ secrets.WP_TOKEN }}
           WP_API_URL: ${{ secrets.WP_API_URL }}
           WP_USERNAME: ${{ secrets.WP_USERNAME }}
+          SLACK_PUBLISH_WEBHOOK: ${{ secrets.SLACK_PUBLISH_WEBHOOK }}
         run: |
           while IFS= read -r file; do
             [ -z "$file" ] && continue
