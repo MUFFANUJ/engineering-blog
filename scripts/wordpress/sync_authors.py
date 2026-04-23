@@ -155,50 +155,59 @@ IMAGE_EXTENSIONS = {
 }
 
 
-def sync_avatar(
-    author: Dict,
+def _reuse_wp_media(
+    avatar_url: str, user_id: int, headers: Dict, wp_api_url: str
+) -> Optional[int]:
+    """If avatar_url points to this WordPress site, return the existing media ID
+    (after transferring ownership to user_id) instead of uploading a duplicate.
+
+    Returns None when avatar_url is external or the media isn't found.
+    """
+    wp_base = wp_api_url.rsplit("/wp-json", 1)[0]
+    if not avatar_url.startswith(wp_base):
+        return None
+
+    filename = avatar_url.rsplit("/", 1)[-1]
+    stem = filename.rsplit(".", 1)[0]
+    resp = requests.get(
+        f"{wp_api_url}/media",
+        headers=headers,
+        params={"search": stem, "per_page": 10},
+        timeout=DEFAULT_TIMEOUT,
+    )
+    if resp.status_code != 200:
+        return None
+    for item in resp.json():
+        if item.get("source_url") == avatar_url:
+            media_id = item["id"]
+            if item.get("author") != user_id:
+                # Simple Local Avatars needs media.author == user being set.
+                requests.post(
+                    f"{wp_api_url}/media/{media_id}",
+                    headers=headers,
+                    json={"author": user_id},
+                    timeout=DEFAULT_TIMEOUT,
+                )
+            return media_id
+    return None
+
+
+def _upload_external_avatar(
+    avatar_url: str,
+    marker: str,
     user_id: int,
     headers: Dict,
     wp_api_url: str,
-    dry_run: bool,
-) -> bool:
-    """Upload avatar image and set it as the user's local avatar.
-
-    Uses Simple Local Avatars to override the default Gravatar. Media
-    ownership is transferred to the target user because the plugin
-    only accepts avatars uploaded by the user themselves.
-    """
-    avatar_url = author.get("avatar_url")
-    if not avatar_url:
-        return False
-
-    # Idempotency: the uploaded filename encodes a hash of avatar_url, so when
-    # the user edits avatar_url in authors.yml the filename marker changes and
-    # we re-upload. Without the hash, any URL change would be silently ignored.
-    url_hash = hashlib.sha256(avatar_url.encode("utf-8")).hexdigest()[:8]
-    marker = f"avatar-{author['slug']}-{url_hash}"
-
-    resp = requests.get(
-        f"{wp_api_url}/users/{user_id}", headers=headers, timeout=DEFAULT_TIMEOUT
-    )
-    current = (resp.json() or {}).get("simple_local_avatar") or {}
-    if marker in current.get("full", ""):
-        print(f"  Avatar up to date: {author['name']}")
-        return False
-    previous_media_id = current.get("media_id")
-
-    if dry_run:
-        print(f"  [DRY RUN] Would set avatar for {author['name']} from {avatar_url}")
-        return False
-
+) -> Optional[int]:
+    """Download avatar_url and upload as a new media item owned by user_id."""
     img = requests.get(
         avatar_url,
         headers={"User-Agent": "OpenTeams-Engineering-Blog/1.0"},
         timeout=30,
     )
     if img.status_code != 200:
-        print(f"  Failed to download avatar for {author['name']}: {img.status_code}")
-        return False
+        print(f"  Failed to download avatar: {img.status_code}")
+        return None
 
     content_type = img.headers.get("Content-Type", "image/png").split(";")[0].strip()
     extension = IMAGE_EXTENSIONS.get(content_type, ".png")
@@ -216,8 +225,8 @@ def sync_avatar(
         timeout=DEFAULT_TIMEOUT,
     )
     if upload_resp.status_code not in (200, 201):
-        print(f"  Failed to upload avatar for {author['name']}: {upload_resp.status_code}")
-        return False
+        print(f"  Failed to upload avatar: {upload_resp.status_code}")
+        return None
     media_id = upload_resp.json()["id"]
 
     # Simple Local Avatars requires the media's author to match the target user.
@@ -227,6 +236,54 @@ def sync_avatar(
         json={"author": user_id},
         timeout=DEFAULT_TIMEOUT,
     )
+    return media_id
+
+
+def sync_avatar(
+    author: Dict,
+    user_id: int,
+    headers: Dict,
+    wp_api_url: str,
+    dry_run: bool,
+) -> bool:
+    """Upload or reuse avatar image and set it as the user's local avatar.
+
+    If avatar_url already points at a media item on this WordPress site, that
+    existing item is reused (ownership transferred to the target user) to
+    avoid duplicating images in the media library. External URLs are
+    downloaded and uploaded under a hashed filename.
+    """
+    avatar_url = author.get("avatar_url")
+    if not avatar_url:
+        return False
+
+    url_hash = hashlib.sha256(avatar_url.encode("utf-8")).hexdigest()[:8]
+    marker = f"avatar-{author['slug']}-{url_hash}"
+
+    resp = requests.get(
+        f"{wp_api_url}/users/{user_id}", headers=headers, timeout=DEFAULT_TIMEOUT
+    )
+    current = (resp.json() or {}).get("simple_local_avatar") or {}
+    current_full = current.get("full", "")
+    # Already in sync: either reusing the same WP media, or the sync-uploaded
+    # copy whose filename encodes this URL's hash.
+    if current_full == avatar_url or marker in current_full:
+        print(f"  Avatar up to date: {author['name']}")
+        return False
+    previous_media_id = current.get("media_id")
+
+    if dry_run:
+        print(f"  [DRY RUN] Would set avatar for {author['name']} from {avatar_url}")
+        return False
+
+    media_id = _reuse_wp_media(avatar_url, user_id, headers, wp_api_url)
+    if media_id is None:
+        media_id = _upload_external_avatar(
+            avatar_url, marker, user_id, headers, wp_api_url
+        )
+    if media_id is None:
+        print(f"  Failed to resolve avatar for {author['name']}")
+        return False
 
     avatar_resp = requests.post(
         f"{wp_api_url}/users/{user_id}",
@@ -239,15 +296,18 @@ def sync_avatar(
               f"{avatar_resp.status_code} {avatar_resp.text}")
         return False
 
-    # Delete the replaced avatar so the media library doesn't accumulate
-    # orphaned avatar uploads. Best-effort: ignore failures.
+    # Delete the replaced avatar only if it was a sync-generated copy
+    # (filename starts with `avatar-<slug>-`). User-uploaded originals and
+    # reused WP media are left in place.
     if previous_media_id and previous_media_id != media_id:
-        requests.delete(
-            f"{wp_api_url}/media/{previous_media_id}",
-            headers=headers,
-            params={"force": "true"},
-            timeout=DEFAULT_TIMEOUT,
-        )
+        prev_filename = current_full.rsplit("/", 1)[-1]
+        if prev_filename.startswith(f"avatar-{author['slug']}-"):
+            requests.delete(
+                f"{wp_api_url}/media/{previous_media_id}",
+                headers=headers,
+                params={"force": "true"},
+                timeout=DEFAULT_TIMEOUT,
+            )
 
     print(f"  Avatar set for {author['name']}")
     return True
