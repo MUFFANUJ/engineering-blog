@@ -32,7 +32,7 @@ This keeps the loop very short: write, load, test, refine.
 
 ## What Plugin Playground AI Integration Adds
 
-Plugin Playground supports AI-assisted prototyping in both JupyterLite and Binder (JupyterLab). Once your provider and model are configured, AI can help with all major steps.
+Plugin Playground supports AI-assisted prototyping in local JupyterLab and in online deployments that require no installation: [Binder](https://mybinder.org/) (a hosted JupyterHub environment) and [JupyterLite](https://jupyterlite.readthedocs.io/en/latest/) (a serverless, WebAssembly-based distribution of Jupyter). Once your provider and model are configured, AI can help with all major steps.
 
 ### 1) Create plugin code quickly
 
@@ -91,13 +91,36 @@ The command insertion modes are available while editing:
 
 This helps place command calls quickly in the right context.
 
+## How We Built It
+
+For readers who want the implementation details, we focused on three design choices.
+
+### 1) Dedicated skill for plugin creation
+
+We integrated a dedicated plugin-creation skill so the assistant can produce a solid first draft of a JupyterLab plugin without guessing project structure each time. This keeps generated code closer to Plugin Playground workflows and reduces repetitive setup.
+
+### 2) Tool calling mapped to native JupyterLab commands
+
+Tool calling is wired into the same command system that powers JupyterLab UI actions. In practice, that means AI-triggered actions and manual actions both go through familiar command pathways, including create, load, discover, export, and share flows.
+
+This approach keeps behavior consistent, makes debugging easier, and fits naturally into JupyterLab's command-first ecosystem.
+
+### 3) Upstream contributions to `jupyterlite/ai`
+
+We also contributed improvements upstream while building and validating this workflow:
+
+- [jupyterlite/ai#307](https://github.com/jupyterlite/ai/issues/307) and [jupyterlite/ai#329](https://github.com/jupyterlite/ai/pull/329)
+- [jupyterlite/ai#311](https://github.com/jupyterlite/ai/issues/311), [jupyterlite/ai#319](https://github.com/jupyterlite/ai/pull/319), and [jupyterlab/eslint-plugin#39](https://github.com/jupyterlab/eslint-plugin/issues/39)
+- [jupyterlite/ai#299](https://github.com/jupyterlite/ai/issues/299): discussion we opened that led to an opt-in chat-saving feature for persistence between JupyterLite refreshes
+- [jupyterlite/ai#298](https://github.com/jupyterlite/ai/issues/298): next-step exploration for streaming responses into the editor
+
 ## End-to-End Workflow: From Idea to Shareable Plugin
 
 A simple and practical flow looks like this.
 
 Example goal: create a small plugin that adds a command to the command palette and opens a simple panel.
 
-1. Launch Plugin Playground in Lite or Binder.
+1. Launch Plugin Playground in local JupyterLab, Binder, or JupyterLite.
 2. Configure AI provider, model, and API key.
 3. Create a new plugin from the tile/new-file flow (or start from any editor file).
 4. Describe your feature in plain words and ask AI for a first draft.
