@@ -1,7 +1,7 @@
 ---
 title: "Slow Down — Simple Lessons for Guiding AI and Shipping Better Code"
 slug: slow-down-ship-better-code
-author: jbouder
+author: johnny-bouder
 categories:
   - Engineering
 meta_description: "Practical lessons for shipping better code, staying in control, keeping your skills sharp, and getting real value from AI coding tools without losing yourself in the hype."
