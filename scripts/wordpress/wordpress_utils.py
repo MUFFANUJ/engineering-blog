@@ -57,11 +57,10 @@ class PostMetadata(BaseModel):
     tags: List[str] = Field(default_factory=list)
     meta_description: Optional[str] = None
     focus_keyword: Optional[str] = None
-    featured_image: Optional[str] = None
 
     @field_validator(
         "title", "slug", "author", "meta_description", "focus_keyword",
-        "featured_image", mode="before"
+        mode="before"
     )
     @classmethod
     def ensure_optional_str(cls, v: Any):
@@ -118,7 +117,6 @@ def extract_post_data(file_path: str) -> Dict:
         "wordpress_id": validated_meta.wordpress_id,
         "meta_description": validated_meta.meta_description,
         "focus_keyword": validated_meta.focus_keyword,
-        "featured_image": validated_meta.featured_image,
     }
 
 
