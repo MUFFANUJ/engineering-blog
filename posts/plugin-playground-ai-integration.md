@@ -4,11 +4,11 @@ slug: plugin-playground-ai-integration
 author: anuj-kumar-singh
 categories:
   - Engineering
-meta_description: "Learn how Plugin Playground AI integration helps you create, edit, test, package, and share JupyterLab plugins faster in JupyterLite and Binder."
+meta_description: "Learn how we integrated AI into Plugin Playground to help you create, edit, test, package, and share JupyterLab plugins faster in JupyterLite and Binder."
 focus_keyword: "plugin playground ai integration"
 ---
 
-Building a JupyterLab plugin usually starts with small experiments. Plugin Playground AI integration helps this process by letting you test ideas, change a few lines, reload, and repeat.
+Building a JupyterLab plugin usually starts with small experiments - you test your ideas, change a few lines, reload, and repeat. Learn how we integrated AI into the Playground AI to help with this process.
 
 [Plugin Playground](https://github.com/jupyterlab/plugin-playground) was built for this kind of fast iteration. The new AI integration makes it even easier by combining AI assistance with Playground actions in one workflow.
 
@@ -93,24 +93,30 @@ This helps place command calls quickly in the right context.
 
 ## How We Built It
 
-For readers who want the implementation details, we focused on three design choices.
+For readers who want the implementation details, we focused on four design choices.
 
-### 1) Dedicated skill for plugin creation
+### 1) Why we chose `jupyterlite/ai` over `jupyter-ai`
+
+We wanted one integration layer that works across local JupyterLab, Binder, and JupyterLite with minimal environment-specific branching. As outlined in the [Jupyter AI FAQ](https://jupyter.org/ai), both `jupyter-ai` and `jupyterlite/ai` support overlapping AI capabilities, including tool calling in Jupyter interfaces. The key architectural difference is that `jupyterlite/ai` does not require a server component, while `jupyter-ai` is server-backed and can continue workflows when a browser disconnects.
+
+For this browser-first Plugin Playground workflow, the serverless model of `jupyterlite/ai` was the better fit.
+
+### 2) Dedicated skill for plugin creation
 
 We integrated a dedicated plugin-creation skill so the assistant can produce a solid first draft of a JupyterLab plugin without guessing project structure each time. This keeps generated code closer to Plugin Playground workflows and reduces repetitive setup.
 
-### 2) Tool calling mapped to native JupyterLab commands
+### 3) Tool calling mapped to native JupyterLab commands
 
 Tool calling is wired into the same command system that powers JupyterLab UI actions. In practice, that means AI-triggered actions and manual actions both go through familiar command pathways, including create, load, discover, export, and share flows.
 
 This approach keeps behavior consistent, makes debugging easier, and fits naturally into JupyterLab's command-first ecosystem.
 
-### 3) Upstream contributions to `jupyterlite/ai`
+### 4) Upstream contributions to `jupyterlite/ai`
 
 We also contributed improvements upstream while building and validating this workflow:
 
-- [jupyterlite/ai#307](https://github.com/jupyterlite/ai/issues/307) and [jupyterlite/ai#329](https://github.com/jupyterlite/ai/pull/329)
-- [jupyterlite/ai#311](https://github.com/jupyterlite/ai/issues/311), [jupyterlite/ai#319](https://github.com/jupyterlite/ai/pull/319), and [jupyterlab/eslint-plugin#39](https://github.com/jupyterlab/eslint-plugin/issues/39)
+- [jupyterlite/ai#307](https://github.com/jupyterlite/ai/issues/307) and [jupyterlite/ai#329](https://github.com/jupyterlite/ai/pull/329): added support for pre-filling chat input through a public command API and an open-or-reveal chat command.
+- [jupyterlite/ai#311](https://github.com/jupyterlite/ai/issues/311), [jupyterlite/ai#319](https://github.com/jupyterlite/ai/pull/319), and [jupyterlab/eslint-plugin#39](https://github.com/jupyterlab/eslint-plugin/issues/39): aligned plugin token naming with standard conventions and proposed lint-level enforcement upstream.
 - [jupyterlite/ai#299](https://github.com/jupyterlite/ai/issues/299): discussion we opened that led to an opt-in chat-saving feature for persistence between JupyterLite refreshes
 - [jupyterlite/ai#298](https://github.com/jupyterlite/ai/issues/298): next-step exploration for streaming responses into the editor
 
